@@ -1,0 +1,7 @@
+#logviewer {
+  -moz-binding: url('chrome://logsploder/content/viewbindings.xml#logviewer');
+}
+
+.logmessage {
+  -moz-binding: url('chrome://logsploder/content/viewbindings.xml#logmessage');
+}

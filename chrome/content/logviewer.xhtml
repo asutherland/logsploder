@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <title>Log Viewer</title>
+    <!-- 
+    <script src="chrome://visophyte/content/visophyte.js" type="application/javascript;version=1.8"/>
+    -->
+    <link rel="stylesheet"
+      href="chrome://logsploder/content/logviewer.css"
+      type="text/css" />
+    <script type="application/javascript;version=1.8">
+      const Cc = Components.classes;
+      const Ci = Components.interfaces;
+      const Cr = Components.results;
+      const Cu = Components.utils;
+
+      Cu.import("resource://logsploder/modules/gobbler.js");
+    </script>
+  </head>
+  <body bgcolor="#ffffff">
+    <canvas id="wordy" width="800" height="200"></canvas>
+    Picture above!
+    <br/>
+    <div id="logviewer"/>
+    Log crap above!
+  </body>
+</html>

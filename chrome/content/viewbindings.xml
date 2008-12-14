@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+
+<bindings id="viewBindings"
+          xmlns="http://www.mozilla.org/xbl"
+          xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+          xmlns:html="http://www.w3.org/1999/xhtml"
+          xmlns:xbl="http://www.mozilla.org/xbl">
+  <binding id="logviewer">
+    <implementation>
+      <constructor><![CDATA[
+        dump("======================\n");
+        dump("document: " + document + "\n");
+        dump("this: " + this + "\n");
+        dump("Binding parent: " + document.getBindingParent(this) + "\n");
+        dump("Anonymous nodes: " + document.getAnonymousNodes(this) + "\n");
+        dump("Anonymous node 0: " + document.getAnonymousNodes(this)[0] + "\n");
+        
+        this._messageArea = document.getAnonymousElementByAttribute(this,
+          "anonid", "messagearea");
+        dump("message area: " + this._messageArea + "\n");
+        this.gobbler = new LogGobbler(this);
+        this.gobbler.start(9363);
+      ]]></constructor>
+      <method name="onLogMessage">
+        <parameter name="message"/>
+        <body><![CDATA[
+          let node = document.createElement("li");
+          node.setAttribute("class", "logmessage");
+          this._messageArea.appendChild(node);
+          node.message = message;
+        ]]></body>
+      </method>
+    </implementation>
+    <content>
+      <html:div>
+        Hello, jerky XBL world!
+      </html:div>
+      <ul anonid="messagearea" />
+    </content>
+  </binding>
+  
+  <binding id="logmessage">
+    <implementation>
+      <constructor><![CDATA[
+        //this._messageNode = document.getAnonymousElementByAttribute(this,
+        //  "anonid", "message");
+      ]]></constructor>
+      <property name="message">
+        <setter><![CDATA[
+          this._message = val;
+          
+          let messageText = "";
+          for each (let [, messageObject] in
+                    Iterator(this._message.messageObjects)) {
+            if (typeof(messageObject) != "object")
+              messageText += (messageText ? " " : "") + messageObject;
+            else if (!messageObject._isContext)
+              messageText += (messageText ? " " : "") + messageObject.toString();
+          } 
+          
+          this.textContent = messageText;
+        ]]></setter>
+      </property>
+    </implementation>
+  </binding>
+</bindings>

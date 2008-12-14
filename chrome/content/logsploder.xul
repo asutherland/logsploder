@@ -3,5 +3,9 @@
 
 <window id="main" title="LogSploder" width="1024" height="768"
 xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
-  <caption label="Hello World"/>
+  <iframe id="viewerframe" flex="2"
+    src="chrome://logsploder/content/logviewer.xhtml"/>
+  <!-- 
+  <iframe id="blah" flex="1" src="chrome://global/content/console.xul"/>
+  -->
 </window>
