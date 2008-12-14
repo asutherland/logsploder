@@ -20,21 +20,140 @@
         dump("message area: " + this._messageArea + "\n");
         this.gobbler = new LogGobbler(this);
         this.gobbler.start(9363);
+        
+        this.logContexts = {};
+        this.logContextsByTime = [];
+        this.messagesByContext = {};
       ]]></constructor>
       <method name="onLogMessage">
         <parameter name="message"/>
         <body><![CDATA[
-          let node = document.createElement("li");
-          node.setAttribute("class", "logmessage");
-          this._messageArea.appendChild(node);
-          node.message = message;
+          if (0) {
+            let node = document.createElement("li");
+            node.setAttribute("class", "logmessage");
+            this._messageArea.appendChild(node);
+            node.message = message;
+          }
+          
+          let newContext = this.getLogContext(message);
+          if (newContext) {
+            let knownContext = this.logContexts[newContext.id];
+            
+            if (!knownContext) {
+              this.logContextsByTime.push(newContext);
+              this.logContexts[newContext.id] = newContext;
+              this.messagesByContext[newContext.id] = [message]; 
+            }
+            else {
+              for each (let [key, newVal] in Iterator(newContext)) {
+                if (!(key in knownContext))
+                  knownContext[key] = newVal;
+                else {
+                  let oldVal = knownContext[key];
+                  if (oldVal != newVal) {
+                    knownContext[key] = newVal;
+                    if (key == "lastStateChange" &&
+                        newContext.state != "finished") {
+                      let stateChanges = knownContext.stateChanges;
+                      if (stateChanges === undefined)
+                        stateChanges = knownContext.stateChanges = [];
+                      stateChanges.push([newVal, newContext.state]);
+                    }
+                  }
+                }
+              }
+              this.messagesByContext[newContext.id].push(message);
+            }
+            
+            if (newContext.finished) {
+              this.updateVis();
+              dump("duration for " + newContext.id + " was: " +
+                   (newContext.finished - newContext.started) + " sql: " +
+                   newContext.sql + "\n");
+            }
+          }
         ]]></body>
       </method>
+      <method name="getLogContext">
+        <parameter name="message"/>
+        <body><![CDATA[
+          for each (let [, messageObject] in
+                    Iterator(message.messageObjects)) {
+            if ((typeof(messageObject) == "object") && messageObject._isContext)
+              return messageObject;
+          }
+          return null;
+        ]]></body>
+      </method>
+      
+      <method name="updateVis">
+        <body><![CDATA[
+          if (this.vRequest === undefined) {
+            this.vRequest = vRequest = new Vis();
+            vRequest.add(new DistinctColor("noun", "fill", 0.2, 0.9));
+            vRequest.add(new ValueMapper("type", "stroke",
+              {query: "#000", xbl: "#080", stream: "#008"}));
+            vRequest.add(new Rectangle("fill", "stroke", "strokeWidth"));
+        
+            this.vTimeline = vTimeline = new Vis();
+            vTimeline.add(new HoverToggler("toggled",
+                                         {fill: "white"}));
+            vTimeline.add(new ClickCallback(this, this.showMessagesForContext));                         
+            // position and size the vRequest instances
+            vTimeline.add(new TimeLayout(vRequest, 10, "started", "finished",
+                {strokeWidth: 1}, "stateChanges",
+                {dbdone: "#00f", cachestart: "#f00", cachedone: "#0f0",
+                 addItemStart: "#f00",
+                 gotMessages: "#f00", procedMessages: "#0f0",
+                 issueStream: "#f8f", gotStream: "#888"}));
+          }
+          else {
+            this.vcTimeline.unbindFromCanvasNode();
+          }
+          
+          this.vcTimeline = this.vTimeline.makeContext(this.logContextsByTime,
+              {}); 
+          let canvasNode = document.getAnonymousElementByAttribute(this,
+              "anonid", "canvasy");
+          this.vcTimeline.bindToCanvasNode(canvasNode, 0, 0);
+        ]]></body>
+      </method>
+      
+      <method name="clearLogs">
+        <body><![CDATA[
+          this.logContexts = {};
+          this.logContextsByTime = [];
+          this.messagesByContext = {};
+        ]]></body>
+      </method>
+      
+      <method name="showMessagesForContext">
+        <parameter name="phantomContext"/>
+        <body><![CDATA[
+          let messages = this.messagesByContext[phantomContext.id];
+          
+          if (messages) {
+            // nuke the current messages
+            let messageArea = this._messageArea;
+            while (messageArea.firstChild)
+              messageArea.removeChild(messageArea.firstChild);
+            
+            for each (let [, message] in Iterator(messages)) {
+              let node = document.createElement("li");
+              node.setAttribute("class", "logmessage");
+              this._messageArea.appendChild(node);
+              node.message = message;
+            }
+          }
+        ]]></body>
+      </method>
+
     </implementation>
     <content>
-      <html:div>
-        Hello, jerky XBL world!
-      </html:div>
+      <html:canvas anonid="canvasy" width="1000" height="320"></html:canvas>
+      <html:hr/>
+      <html:button onclick="document.getBindingParent(this).clearLogs()">Clear</html:button>
+      <html:hr/>
       <ul anonid="messagearea" />
     </content>
   </binding>
@@ -49,6 +168,7 @@
         <setter><![CDATA[
           this._message = val;
           
+          let date = new Date(this._message.time);
           let messageText = "";
           for each (let [, messageObject] in
                     Iterator(this._message.messageObjects)) {
@@ -56,9 +176,12 @@
               messageText += (messageText ? " " : "") + messageObject;
             else if (!messageObject._isContext)
               messageText += (messageText ? " " : "") + messageObject.toString();
-          } 
+            else {
+              dump("Got context! " + messageObject.id + ":" + messageObject.state + "\n");
+            }
+          }
           
-          this.textContent = messageText;
+          this.textContent = date + ": " + messageText;
         ]]></setter>
       </property>
     </implementation>

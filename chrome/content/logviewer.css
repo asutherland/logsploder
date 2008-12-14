@@ -4,4 +4,5 @@
 
 .logmessage {
   -moz-binding: url('chrome://logsploder/content/viewbindings.xml#logmessage');
+  list-style: square inside;
 }
