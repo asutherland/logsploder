@@ -4,10 +4,6 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
   <head>
     <title>Log Viewer</title>
-    <script src="chrome://visophyte/content/visophyte.js" type="application/javascript;version=1.8"/>
-    <link rel="stylesheet"
-      href="chrome://logsploder/content/logviewer.css"
-      type="text/css" />
     <script type="application/javascript;version=1.8">
       const Cc = Components.classes;
       const Ci = Components.interfaces;
@@ -16,6 +12,13 @@
 
       Cu.import("resource://logsploder/modules/gobbler.js");
     </script>
+    <script src="logman.js" type="application/javascript;version=1.8"/>
+    <script src="logaggr.js" type="application/javascript;version=1.8"/>
+    <script src="protovis-d3.1.js" type="application/javascript;version=1.8"/>
+    <script src="logvis.js" type="application/javascript;version=1.8"/>
+    <link rel="stylesheet"
+      href="chrome://logsploder/content/logviewer.css"
+      type="text/css" />
   </head>
   <body bgcolor="#ffffff">
     <div id="logviewer"/>

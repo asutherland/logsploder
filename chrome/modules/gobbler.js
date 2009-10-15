@@ -58,14 +58,14 @@ Gobbler.prototype = {
     this._socket.asyncListen(this);
     dump("started!\n");
   },
-  
+
   stop: function Gobbler_stop() {
     if (this._socket) {
       this._socket.close();
       this._socket = null;
     }
   },
-  
+
   // ===== nsIServerSocketListener =====
   onSocketAccepted: function Gobbler_onSocketAccepted(aServer, aTransport) {
     dump("got connection!\n");
@@ -85,9 +85,9 @@ function GobblerConnection(aGobbler, aInputStream) {
   this._scriptableInputStream = Cc["@mozilla.org/scriptableinputstream;1"]
                                   .createInstance(Ci.nsIScriptableInputStream);
   this._scriptableInputStream.init(this._inputStream);
-  
+
   this._inputStream.asyncWait(this, 0, 0, this._gobbler._mainThread);
-  
+
   this._data = "";
 }
 GobblerConnection.prototype = {
@@ -100,17 +100,17 @@ GobblerConnection.prototype = {
       this.close();
       return;
     }
-    
+
     let idxNewLine;
     while ((idxNewline = this._data.indexOf("\r\n")) != -1) {
       let line = this._data.substring(0, idxNewline);
       this._data = this._data.substring(idxNewline+2);
       this.processLine(line);
     }
-    
+
     this._inputStream.asyncWait(this, 0, 0, this._gobbler._mainThread);
   },
-  
+
   close: function () {
     try {
       this._scriptableInputStream.close();
@@ -125,7 +125,7 @@ GobblerConnection.prototype = {
 
 /**
  * Specialized log processing server; which is to say, we know how to create
- *  
+ *
  */
 function LogGobbler(aLogEventListener) {
   Gobbler.call(this);
@@ -135,7 +135,7 @@ LogGobbler.prototype = {
   __proto__: Gobbler.prototype,
   connectionClass: LogGobblerConnection,
   _json: Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON),
-}
+};
 
 function LogGobblerConnection() {
   GobblerConnection.apply(this, arguments);

@@ -28,7 +28,7 @@
       <method name="onLogMessage">
         <parameter name="message"/>
         <body><![CDATA[
-          if (0) {
+          if (1) {
             let node = document.createElement("li");
             node.setAttribute("class", "logmessage");
             this._messageArea.appendChild(node);
