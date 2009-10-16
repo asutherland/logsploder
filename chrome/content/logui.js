@@ -10,8 +10,17 @@ let LogUI = {
 
   },
 
+  /**
+   * Select a bucket and make it current.
+   *
+   * @param bucketAggr A bucket aggregation as provided by LogAggr.
+   */
   selectBucket: function LogUI_showBucket(bucketAggr) {
-    this._notifyListeners("onBucketSelected", [bucketAggr]);
+    this._notifyListeners("onBucketSelected", arguments);
+  },
+
+  showDetail: function LogUI_showDetail(obj, clickOrigin) {
+    this._notifyListeners("onShowDetail", arguments);
   },
 
   /**
@@ -58,25 +67,57 @@ let LogList = {
     let listRoot = document.createElement("ul");
 
     for each (let [, msg] in Iterator(bucket)) {
-      let text = "";
+      // filter out contexts for now
+      let realThings = [];
       for each (let [, msgObj] in Iterator(msg.messageObjects)) {
-        // ignore contexts for this purpose
-        if (typeof(msgObj) != "object")
-          text += (text ? " " : "") + msgObj;
-        else if ("_isContext" in msgObj)
+        if (msgObj && (typeof(msgObj) == "object") &&
+            ("_isContext" in msgObj))
+          // in the future we would do something having seen this
           continue;
-        else if ("type" in msgObj)
-          text += stringifyTypedObj(msgObj, " ");
-
-        let listNode = document.createElement("li");
-        listNode.textContent = text;
-        listRoot.appendChild(listNode);
+        realThings.push(msgObj);
       }
+
+      let listNode = document.createElement("li");
+      listNode.appendChild(nodifyList(realThings));
+      listRoot.appendChild(listNode);
     }
 
     bucketNode.appendChild(listRoot);
   },
-
-
 };
 LogList._init();
+
+/**
+ * Implements a primitive detail view that just builds a hierarchical definition
+ *  list.
+ */
+let DetailView = {
+  _init: function DetailView__init() {
+    LogUI.registerListener("onShowDetail", this.onShowDetail, this);
+  },
+
+  _buildDefTree: function DetailView__buildDefTree(obj) {
+    let listRoot = document.createElement("dl");
+    for each (let [key, val] in Iterator(obj)) {
+      let topic = document.createElement("dt");
+      topic.textContent = key;
+
+      let data = document.createElement("dd");
+      data.appendChild(nodifyThing(val), DetailView._buildDefTree);
+
+      listRoot.appendChild(topic);
+      listRoot.appendChild(data);
+    }
+    return listRoot;
+  },
+
+  onShowDetail: function DetailView_onShowDetail(obj) {
+    let detailNode = document.getElementById("detail-view");
+
+    while (detailNode.lastChild)
+      detailNode.removeChild(detailNode.lastChild);
+
+    detailNode.appendChild(this._buildDefTree(obj));
+  },
+};
+DetailView._init();

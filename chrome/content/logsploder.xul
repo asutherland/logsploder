@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 
-<window id="main" title="LogSploder" width="1024" height="768"
+<window id="main" title="LogSploder" width="1024" height="1200"
 xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
   <iframe id="viewerframe" flex="2"
     src="chrome://logsploder/content/logviewer.xhtml"/>
