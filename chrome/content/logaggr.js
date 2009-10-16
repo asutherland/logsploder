@@ -23,11 +23,16 @@ let LogAggr = {
   },
 
   chew: function() {
-    if (this.curBucket && this.curBucket.length != this.curBucketCount)
+    let didSomething = false;
+
+    if (this.curBucket && this.curBucket.length != this.curBucketCount) {
+      didSomething = true;
       this._chewBucket(this.curBucket, this.curBucketAggr);
+    }
 
     let newBuckets = LogManager.getAndClearNewBuckets();
     for each (let [iBucket, [bucketName, bucket]] in Iterator(newBuckets)) {
+      didSomething = true;
       let bucketAggr = {
         name: bucketName,
         loggerCounts: {}
@@ -43,5 +48,7 @@ let LogAggr = {
         this.curBucketCount = bucket.length;
       }
     }
+
+    return didSomething;
   }
 };

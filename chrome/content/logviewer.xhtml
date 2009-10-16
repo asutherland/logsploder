@@ -16,11 +16,17 @@
     <script src="logaggr.js" type="application/javascript;version=1.8"/>
     <script src="protovis-d3.1.js" type="application/javascript;version=1.8"/>
     <script src="logvis.js" type="application/javascript;version=1.8"/>
+    <script src="formatters.js" type="application/javascript;version=1.8"/>
+    <script src="logui.js" type="application/javascript;version=1.8"/>
     <link rel="stylesheet"
       href="chrome://logsploder/content/logviewer.css"
       type="text/css" />
   </head>
   <body bgcolor="#ffffff">
-    <div id="logviewer"/>
+    <div id="visualizations" style="display: inline-block">
+      <div id="logger-hierarchy-vis" style="float: left;"/>
+      <div id="date-bucket-vis" style="float: left;"/>
+    </div>
+    <div id="bucket-contents"/>
   </body>
 </html>

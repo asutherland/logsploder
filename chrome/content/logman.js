@@ -46,6 +46,12 @@ let LogManager = {
     return newBuckets;
   },
 
+  getBucket: function LogManager_getBucket(bucketName) {
+    if (bucketName in this._dateBuckets)
+      return this._dateBuckets[bucketName];
+    return null;
+  },
+
   /**
    * Reset all state
    */

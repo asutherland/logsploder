@@ -15,7 +15,7 @@ function makeTimeVis(aWidth, aHeight) {
 
 let LoggerHierarchyVisier = {
   WIDTH: 360,
-  HEIGHT: 240,
+  HEIGHT: 360,
   _init: function LoggerHierarchyVisier_init() {
     LogManager.registerListener("onNewLogger", this.onNewLogger, this);
   },
@@ -23,20 +23,26 @@ let LoggerHierarchyVisier = {
   _vis: null,
   _makeVis: function LoggerHierarchyVisier__makeVis() {
     let vis = this._vis = new pv.Panel()
+      .canvas("logger-hierarchy-vis")
       .width(this.WIDTH)
       .height(this.HEIGHT);
 
-    let colorize = pv.Colors.category19().by(function(n) n.keys.slice(0, -1));
+    //let colorize = pv.Colors.category20().by(function(n) n.keys);
+    let colorize = function(s) {
+      return new pv.Color.Hsl(360 * s.index / s.scene.length,
+                              1, 0.8, 1);
+    };
 
     this._treemap = pv.Layout.treemap(this.loggerTree)
-      .round(true).inset(17, 1, 1, 1).root("");
+      //.inset(17, 1, 1, 1)
+      .round(true);
 
     this._mapvis = vis.add(pv.Bar)
         .extend(this._treemap)
         //.width(function(n) n.width - 1)
         //.height(function(n) n.height - 1)
         .title(function(n) n.keys.join("."))
-        .fillStyle(function(n) colorize(n).alpha(0.5));
+        .fillStyle(function(n) colorize(this));
     this._mapvis.anchor("top").add(pv.Label)
         .text(function(n) n.keys[n.keys.length - 1]);
   },
@@ -45,7 +51,8 @@ let LoggerHierarchyVisier = {
       this._makeVis();
     else {
       this._treemap = pv.Layout.treemap(this.loggerTree)
-        .round(true).inset(17, 1, 1, 1).root("");
+        //.inset(17, 1, 1, 1)
+        .round(true);
       this._mapvis.extend(this._treemap);
     }
 
@@ -70,16 +77,16 @@ LoggerHierarchyVisier._init();
 
 
 let DateBucketVis = {
-  WIDTH: 600,
-  HEIGHT: 600,
-  CELL_WIDTH: 60,
-  CELL_HEIGHT: 60,
+  WIDTH: 610,
+  HEIGHT: 366,
+  CELL_WIDTH: 61,
+  CELL_HEIGHT: 61,
   _vis: null,
   _makeVis: function DateBucketVis__makeVis() {
     let vis = this._vis = new pv.Panel()
+      .canvas("date-bucket-vis")
       .width(this.WIDTH)
-      .height(this.HEIGHT)
-      .fillStyle("blue");
+      .height(this.HEIGHT);
 
     this._treemap = pv.Layout.treemap(LoggerHierarchyVisier.loggerTree)
       .round(true);
@@ -89,37 +96,37 @@ let DateBucketVis = {
     let xCount = Math.floor(WIDTH / CELL_WIDTH);
     let yCount = Math.floor(HEIGHT / CELL_HEIGHT);
 
-    let raw_colorize =
-      pv.Colors.category19().by(function(n) n.keys.slice(0, -1));
+    //let raw_colorize =
+    //  pv.Colors.category20().by(function(n) n.keys);
 
     function colorize(s, n) {
       let loggerName = n.keys.join(".");
-      //dump("s.parent: " + uneval(s.parent) + "\n");
       let p = s.parent;
-      //dump("index: " + p.index + "\n");
       let bucketAggr = p.scene[p.index].data;
-      //dump("s: " + uneval(s) + "\n");
-      //dump("n: " + uneval(n) + "\n");
       let count = 0;
       if (loggerName in bucketAggr.loggerCounts)
         count = bucketAggr.loggerCounts[loggerName];
-      return raw_colorize(n).alpha(Math.min(1.0, count / 2 + 0.4));
+      return new pv.Color.Hsl(360 * s.index / s.scene.length,
+                              Math.min(1.0, count / 10),
+                              0.8, 1);
     };
 
     let cell = vis.add(pv.Panel)
       .data(this.buckets)
       .top(function() Math.floor(this.index / xCount) * CELL_HEIGHT)
       .left(function() (this.index % xCount) * CELL_WIDTH)
-      .height(CELL_HEIGHT)
-      .width(CELL_WIDTH);
+      .height(CELL_HEIGHT - 1)
+      .width(CELL_WIDTH - 1)
+      .event("click", function(d) LogUI.selectBucket(d));
     this._mapvis = cell.add(pv.Bar)
       .extend(this._treemap)
-      //.fillStyle(function(n) colorize(this, n));
-      .fillStyle(function(n) raw_colorize(n));
+      .fillStyle(function(n) colorize(this, n));
 
   },
   updateVis: function DateBucketVis__updateVis() {
-    LogAggr.chew();
+    // don't do anything if nothing changed.
+    if(!LogAggr.chew())
+      return;
     this.buckets = LogAggr.bucketAggrs;
 
     if (this.buckets.length == 0)
