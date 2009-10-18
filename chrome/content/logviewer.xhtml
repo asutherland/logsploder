@@ -21,7 +21,7 @@
     <script type="text/javascript"
             src="jslibs/jquery/jquery-ui-1.7.2.custom.min.js"></script>
     <!-- protovis -->
-    <script src="protovis-d3.1.js" type="application/javascript;version=1.8"/>
+    <script src="jslibs/protovis/protovis-d3.1.js" type="application/javascript;version=1.8"/>
     <!-- us -->
     <script src="logman.js" type="application/javascript;version=1.8"/>
     <script src="logaggr.js" type="application/javascript;version=1.8"/>
@@ -37,7 +37,13 @@
       <div id="logger-hierarchy-vis" style="float: left;"/>
       <div id="date-bucket-vis" style="float: left;"/>
     </div>
-    <div id="bucket-contents"/>
-    <div id="detail-view"/>
+    <div id="data-tabs">
+      <ul>
+        <li><a href="#bucket-contents">Log Contents</a></li>
+        <li><a href="#detail-view">Detail View</a></li>
+      </ul>
+      <div id="bucket-contents"/>
+      <div id="detail-view"/>
+    </div>
   </body>
 </html>

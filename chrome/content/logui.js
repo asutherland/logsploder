@@ -7,7 +7,7 @@
  */
 let LogUI = {
   _init: function LogUI__init() {
-
+    $("#data-tabs").tabs();
   },
 
   /**
@@ -46,7 +46,7 @@ let LogUI = {
     this._listenersByListeningFor[listenFor].push([listener, listenerThis]);
   }
 };
-LogUI._init();
+$(LogUI._init);
 
 /**
  * In charge of the log listing UI which is slaved to the currently selected

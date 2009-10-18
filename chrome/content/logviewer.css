@@ -1,5 +1,12 @@
+body {
+}
+
 a {
   color: #444488;
   cursor: pointer;
   font-weight: 500;
+}
+
+#bucket-contents {
+  overflow: auto;
 }
