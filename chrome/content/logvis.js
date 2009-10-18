@@ -20,7 +20,14 @@ let LoggerHierarchyVisier = {
     LogManager.registerListener("onNewLogger", this.onNewLogger, this);
   },
 
+  /**
+   * Map loggers to their colors.  We do this as a side-effect of building and
+   *  updating the treemap.
+   */
+  loggersToColors: {},
+
   _vis: null,
+
   _makeVis: function LoggerHierarchyVisier__makeVis() {
     let vis = this._vis = new pv.Panel()
       .canvas("logger-hierarchy-vis")
@@ -28,9 +35,13 @@ let LoggerHierarchyVisier = {
       .height(this.HEIGHT);
 
     //let colorize = pv.Colors.category20().by(function(n) n.keys);
-    let colorize = function(s) {
-      return new pv.Color.Hsl(360 * s.index / s.scene.length,
-                              1, 0.8, 1);
+    let colorize = function(s, n) {
+      let loggerName = n.keys.join(".");
+      let hue = 360 * s.index / s.scene.length;
+      let mapColor = new pv.Color.Hsl(hue, 1, 0.8, 1);
+      let textColor = new pv.Color.Hsl(hue, 1, 0.5, 1);
+      LoggerHierarchyVisier.loggersToColors[loggerName] = textColor.color;
+      return mapColor;
     };
 
     this._treemap = pv.Layout.treemap(this.loggerTree)
@@ -42,7 +53,7 @@ let LoggerHierarchyVisier = {
         //.width(function(n) n.width - 1)
         //.height(function(n) n.height - 1)
         .title(function(n) n.keys.join("."))
-        .fillStyle(function(n) colorize(this));
+        .fillStyle(function(n) colorize(this, n));
     this._mapvis.anchor("top").add(pv.Label)
         .text(function(n) n.keys[n.keys.length - 1]);
   },

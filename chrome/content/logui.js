@@ -79,6 +79,11 @@ let LogList = {
 
       let listNode = document.createElement("li");
       listNode.appendChild(nodifyList(realThings));
+
+      let textColor = LoggerHierarchyVisier.loggersToColors[msg.loggerName];
+      if (textColor)
+        listNode.setAttribute("style", "color: " + textColor + ";");
+
       listRoot.appendChild(listNode);
     }
 
