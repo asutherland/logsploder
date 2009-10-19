@@ -32,7 +32,11 @@ let LogFormatters = {
 
   action: {
     stringify: function format_action_stringify(obj) {
-      return obj.who + " " + obj.what + stringifyTypedObj(obj.arg, ": ");
+      return obj.who + " " + obj.what + stringifyList(obj.args, ": ", true);
+    },
+
+    nodify: function format_action_nodify(obj) {
+      return nodifyList([obj.who, obj.what, obj.args]);
     }
   },
 
@@ -95,6 +99,16 @@ function stringifyTypedObj(obj, conditionalStr) {
     return "";
 
   return conditionalStr + LogFormatters[obj.type].stringify(obj);
+}
+
+function stringifyTypedList(things, conditionalStr, delimit) {
+  let s = "";
+  for each (let [iThing, thing] in Iterator(things)) {
+    s += stringifyThing(thing, iThing ? (delimit ? ", " : " ") : "");
+  }
+  if (conditionalStr && s)
+    return conditionalStr + s;
+  return s;
 }
 
 function nodifyTypedObj(obj) {

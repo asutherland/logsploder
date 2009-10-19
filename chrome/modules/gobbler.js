@@ -56,14 +56,62 @@ Gobbler.prototype = {
                      .createInstance(Ci.nsIServerSocket);
     this._socket.init(aPort, /* local only */ true, /* default backlog */ -1);
     this._socket.asyncListen(this);
+    this.createPointerFile(aPort);
     dump("started!\n");
+
+    let observerService = Cc["@mozilla.org/observer-service;1"].
+      getService(Ci.nsIObserverService);
+    observerService.addObserver(this, "quit-application", false);
   },
 
   stop: function Gobbler_stop() {
+    this.destroyPointerFile();
     if (this._socket) {
       this._socket.close();
       this._socket = null;
     }
+
+    let observerService = Cc["@mozilla.org/observer-service;1"]
+                            .getService(Ci.nsIObserverService);
+    observerService.removeObserver(this, "quit-application");
+  },
+
+  observe: function Gobbler_observe(aSubject, aTopic, aData) {
+    // shutdown
+    if (aTopic == "quit-application") {
+      this.stop();
+    }
+  },
+
+  _getPointerFile: function Gobbler__getPointerFile() {
+    let file = Cc["@mozilla.org/file/directory_service;1"]
+      .getService(Ci.nsIProperties)
+      .get("TmpD", Ci.nsIFile);
+    file.append("logsploder.ptr");
+    return file;
+  },
+
+  /**
+   * Create the file that tells testing code about us.
+   */
+  createPointerFile: function Gobbler_createPointerFile(aPort) {
+    let file = this._getPointerFile();
+
+    let data = "localhost:" + aPort;
+
+    let foStream = Cc["@mozilla.org/network/file-output-stream;1"]
+                     .createInstance(Ci.nsIFileOutputStream);
+    foStream.init(file, 0x02 | 0x08 | 0x20, 0666, 0);
+    foStream.write(data, data.length);
+    foStream.close();
+  },
+
+  /**
+   * Destroy the file that tells testing code about us.
+   */
+  destroyPointerFile: function Gobbler_destroyPointerFile() {
+    let pointerFile = this._getPointerFile();
+    pointerFile.remove(false);
   },
 
   // ===== nsIServerSocketListener =====

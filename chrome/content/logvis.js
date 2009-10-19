@@ -104,10 +104,10 @@ let DateBucketVis = {
     this.updateVis();
   },
 
-  WIDTH: 610,
-  HEIGHT: 366,
-  CELL_WIDTH: 61,
-  CELL_HEIGHT: 61,
+  WIDTH: 615,
+  HEIGHT: 369,
+  CELL_WIDTH: 41,
+  CELL_HEIGHT: 41,
   _vis: null,
   _makeVis: function DateBucketVis__makeVis() {
     let vis = this._vis = new pv.Panel()
