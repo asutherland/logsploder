@@ -56,13 +56,18 @@ let LogManager = {
    * Reset all state
    */
   reset: function LogManager_reset() {
+    dump("LogManager resetting...\n");
+
     this._knownLoggers = {};
 
     this._dateBuckets = {};
+    this._firstBucketName = null;
     this._curBucket = null;
     this._curBucketName = null;
 
     this._newBuckets = [];
+
+    this._notifyListeners("onReset", []);
   },
 
   /**
@@ -108,7 +113,14 @@ let LogManager = {
 
     for each (let [, [listener, listenerThis]] in
               Iterator(this._listenersByListeningFor[listeningFor])) {
-      listener.apply(listenerThis, args);
+      try {
+        listener.apply(listenerThis, args);
+      }
+      catch (ex) {
+        dump("!!! exception calling listener " + listener + "\n");
+        dump(ex + "\n");
+        dump(ex.stack + "\n\n");
+      }
     }
   },
 

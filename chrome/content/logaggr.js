@@ -2,6 +2,10 @@
  * Aggregation logic and such.
  */
 let LogAggr = {
+  _init: function LogAggr__init() {
+    LogManager.registerListener("onReset", this.reset, this);
+  },
+
   curBucket: null,
   curBucketAggr: null,
   curBucketCount: 0,
@@ -20,6 +24,10 @@ let LogAggr = {
   bucketAggrs: [],
   reset: function() {
     this.bucketAggrs = [];
+
+    this.curBucket = null;
+    this.curBucketAggr = null;
+    this.curBucketCount = 0;
   },
 
   chew: function() {
@@ -52,3 +60,4 @@ let LogAggr = {
     return didSomething;
   }
 };
+LogAggr._init();

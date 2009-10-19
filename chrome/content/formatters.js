@@ -4,7 +4,8 @@ let FormatHelp = {
    *  object when clicked.
    */
   makeDetailLink: function FormatHelp_makeDetailLink(textOrNodes, detailObj) {
-    let node = document.createElement("a");
+    let node = document.createElement("span");
+    $(node).addClass("clicky");
     if (typeof(textOrNodes) == "string") {
       node.textContent = textOrNodes;
     }
@@ -127,8 +128,11 @@ function nodifyThing(obj, genericObjHandler) {
   else if (genericObjHandler) {
     return genericObjHandler(obj);
   }
+  else if ("_stringRep" in obj) {
+    return FormatHelp.makeDetailLink(obj._stringRep, obj);
+  }
   else {
-    return document.createTextNode(obj.toString());
+    return FormatHelp.makeDetailLink("OBJECT", obj);
   }
 };
 

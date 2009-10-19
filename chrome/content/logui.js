@@ -17,10 +17,12 @@ let LogUI = {
    */
   selectBucket: function LogUI_showBucket(bucketAggr) {
     this._notifyListeners("onBucketSelected", arguments);
+    $("#data-tabs").tabs("select", "bucket-contents");
   },
 
   showDetail: function LogUI_showDetail(obj, clickOrigin) {
     this._notifyListeners("onShowDetail", arguments);
+    $("#data-tabs").tabs("select", "detail-view");
   },
 
   /**

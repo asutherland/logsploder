@@ -1,12 +1,17 @@
 body {
+  font-size: 80%;
 }
 
-a {
-  color: #444488;
+.clicky {
+  text-decoration: underline;
   cursor: pointer;
   font-weight: 500;
 }
 
 #bucket-contents {
   overflow: auto;
+}
+
+dt {
+  font-weight: bold;
 }

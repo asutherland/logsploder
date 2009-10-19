@@ -18,6 +18,12 @@ let LoggerHierarchyVisier = {
   HEIGHT: 360,
   _init: function LoggerHierarchyVisier_init() {
     LogManager.registerListener("onNewLogger", this.onNewLogger, this);
+    LogManager.registerListener("onReset", this._onReset, this);
+  },
+
+  _onReset: function LoggerHierarchyVisier__onReset() {
+    this.loggerTree = [];
+    this._updateVis();
   },
 
   /**
@@ -39,7 +45,7 @@ let LoggerHierarchyVisier = {
       let loggerName = n.keys.join(".");
       let hue = 360 * s.index / s.scene.length;
       let mapColor = new pv.Color.Hsl(hue, 1, 0.8, 1);
-      let textColor = new pv.Color.Hsl(hue, 1, 0.5, 1);
+      let textColor = new pv.Color.Hsl(hue, 1, 0.3, 1);
       LoggerHierarchyVisier.loggersToColors[loggerName] = textColor.color;
       return mapColor;
     };
@@ -88,6 +94,16 @@ LoggerHierarchyVisier._init();
 
 
 let DateBucketVis = {
+  _init: function DateBucketVis__init() {
+    this._updateRequired = true;
+    LogManager.registerListener("onReset", this._onReset, this);
+  },
+
+  _onReset: function DateBucketVis__onReset() {
+    this._updateRequired = true;
+    this.updateVis();
+  },
+
   WIDTH: 610,
   HEIGHT: 366,
   CELL_WIDTH: 61,
@@ -136,14 +152,14 @@ let DateBucketVis = {
   },
   updateVis: function DateBucketVis__updateVis() {
     // don't do anything if nothing changed.
-    if(!LogAggr.chew())
+    if(!LogAggr.chew() && !this._updateRequired)
       return;
+
     this.buckets = LogAggr.bucketAggrs;
 
-    if (this.buckets.length == 0)
+    if ((this.buckets.length == 0) && !this._updateRequired)
       return;
-
-    dump(this.buckets.length + " buckets\n");
+    this._updateRequired = false;
 
     if (this._vis == null)
       this._makeVis();
