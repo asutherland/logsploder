@@ -36,7 +36,7 @@ let LogFormatters = {
     },
 
     nodify: function format_action_nodify(obj) {
-      return nodifyList([obj.who, obj.what, obj.args]);
+      return nodifyList([obj.who, obj.what, obj.args], null, 2);
     }
   },
 
@@ -123,7 +123,7 @@ function nodifyTypedObj(obj) {
     return FormatHelp.makeDetailLink(formatter.stringify(obj), obj);
 }
 
-function nodifyThing(obj, genericObjHandler) {
+function nodifyThing(obj, genericObjHandler, noDelimitDepth) {
   if (obj == null) {
     return document.createTextNode("null");
   }
@@ -137,7 +137,7 @@ function nodifyThing(obj, genericObjHandler) {
     return nodifyTypedObj(obj);
   }
   else if ("length" in obj) {
-    return nodifyList(obj, genericObjHandler, true);
+    return nodifyList(obj, genericObjHandler, noDelimitDepth);
   }
   else if (genericObjHandler) {
     return genericObjHandler(obj);
@@ -150,16 +150,30 @@ function nodifyThing(obj, genericObjHandler) {
   }
 };
 
-function nodifyList(things, genericObjHandler, delimit) {
+function nodifyList(things, genericObjHandler, noDelimitDepth) {
+  let delimit = noDelimitDepth ? false : true;
+  let nextNoDelimitDepth = delimit ? 0 : noDelimitDepth - 1;
   let span = document.createElement("span");
+  // Don't add the nodes immediately because we need to see if they should
+  //  have 'br' tags forced between them...
+  let nodes = [];
+  let newlinesNeeded = false;
   for each (let [iThing, thing] in Iterator(things)) {
-    if (iThing) {
-      if (delimit)
+    let node = nodifyThing(thing, genericObjHandler, nextNoDelimitDepth);
+    nodes.push(node);
+    if (delimit && node.textContent.length > 20)
+      newlinesNeeded = true;
+  }
+  for each (let [iNode, node] in Iterator(nodes)) {
+    if (iNode) {
+      if (newlinesNeeded)
+        span.appendChild(document.createElement("br"));
+      else if (delimit)
         span.appendChild(document.createTextNode(", "));
       else
         span.appendChild(document.createTextNode(" "));
     }
-    span.appendChild(nodifyThing(thing, genericObjHandler));
+    span.appendChild(node);
   }
   return span;
 }
