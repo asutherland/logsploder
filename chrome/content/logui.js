@@ -7,7 +7,21 @@
  */
 let LogUI = {
   _init: function LogUI__init() {
+    LogManager.registerListener("onNewLogFile", this.onNewLogFile, this);
+  },
+  _uiInit: function LogUI__uiInit() {
     $("#data-tabs").tabs();
+  },
+
+  selectedLogFile: null,
+
+  onNewLogFile: function LogUI_onNewLogFile(logFile) {
+    this.selectLogFile(logFile);
+  },
+
+  selectLogFile: function LogUI_selectLogFile(logFile) {
+    this.selectedLogFile = logFile;
+    this._notifyListeners("onLogFileSelected", arguments);
   },
 
   /**
@@ -15,8 +29,9 @@ let LogUI = {
    *
    * @param bucketAggr A bucket aggregation as provided by LogAggr.
    */
-  selectBucket: function LogUI_showBucket(bucketAggr) {
-    this._notifyListeners("onBucketSelected", arguments);
+  selectBucket: function LogUI_selectBucket(bucketAggr) {
+    this._notifyListeners("onBucketSelected",
+                          [this.selectedLogFile, bucketAggr]);
     $("#data-tabs").tabs("select", "bucket-contents");
   },
 
@@ -48,7 +63,8 @@ let LogUI = {
     this._listenersByListeningFor[listenFor].push([listener, listenerThis]);
   }
 };
-$(LogUI._init);
+LogUI._init();
+$(LogUI._uiInit);
 
 /**
  * In charge of the log listing UI which is slaved to the currently selected
@@ -59,8 +75,8 @@ let LogList = {
     LogUI.registerListener("onBucketSelected", this.onBucketSelected, this);
   },
 
-  onBucketSelected: function LogList_onBucketSelected(bucketAggr) {
-    let bucket = LogManager.getBucket(bucketAggr.name);
+  onBucketSelected: function LogList_onBucketSelected(logFile, bucketAggr) {
+    let bucket = logFile.getBucket(bucketAggr.name);
 
     let bucketNode = document.getElementById("bucket-contents");
     while (bucketNode.lastChild)
@@ -128,3 +144,41 @@ let DetailView = {
   },
 };
 DetailView._init();
+
+/**
+ * Implements the "Test Files" tab that shows us the various tests we have heard
+ *  about.
+ */
+let TestFilesList = {
+  _init: function TestFilesList__init() {
+    LogManager.registerListener("onReset", this.onReset, this);
+    LogManager.registerListener("onNewLogFile", this.onNewLogFile, this);
+  },
+
+  onReset: function TestFilesList_onReset() {
+    let root = document.getElementById("test-files");
+    while (root.lastChild)
+      root.removeChild(root.lastChild);
+  },
+
+  onNewLogFile: function TestFilesList_onNewLogFile(logFile) {
+    let root = document.getElementById("test-files");
+    let listRoot;
+    if (root.lastChild) {
+      listRoot = root.lastChild;
+    }
+    else {
+      listRoot = document.createElement("ul");
+      root.appendChild(listRoot);
+    }
+
+    let fileNode = document.createElement("li");
+    fileNode.textContent = logFile.name;
+    fileNode.setAttribute("class", "clicky");
+    fileNode.onclick = function() {
+      LogUI.selectLogFile(logFile);
+    };
+    listRoot.appendChild(fileNode);
+  }
+};
+TestFilesList._init();

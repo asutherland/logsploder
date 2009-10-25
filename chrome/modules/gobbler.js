@@ -187,11 +187,13 @@ LogGobbler.prototype = {
 
 function LogGobblerConnection() {
   GobblerConnection.apply(this, arguments);
+  this.listener = this._gobbler.logEventListener;
+  this.handle = this.listener.onNewConnection();
 }
 LogGobblerConnection.prototype = {
   __proto__: GobblerConnection.prototype,
   processLine: function LogGobblerConnection_processLine(aLine) {
     let message = this._gobbler._json.decode(aLine);
-    this._gobbler.logEventListener.onLogMessage(message);
+    this.listener.onLogMessage(this.handle, message);
   },
 };

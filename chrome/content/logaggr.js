@@ -1,14 +1,22 @@
 /**
  * Aggregation logic and such.
  */
-let LogAggr = {
-  _init: function LogAggr__init() {
-    LogManager.registerListener("onReset", this.reset, this);
-  },
+function LogAggr(logFile) {
+  this.logFile = logFile;
+  logFile.resetNewState();
 
+  this.bucketAggrs = [];
+
+  this.curBucket = null;
+  this.curBucketAggr = null;
+  this.curBucketCount = 0;
+}
+
+LogAggr.prototype = {
+  bucketAggrs: null,
   curBucket: null,
   curBucketAggr: null,
-  curBucketCount: 0,
+  curBucketCount: null,
 
   _chewBucket: function(bucket, bucketAggr) {
     let counts = bucketAggr.loggerCounts;
@@ -21,13 +29,7 @@ let LogAggr = {
     }
   },
 
-  bucketAggrs: [],
   reset: function() {
-    this.bucketAggrs = [];
-
-    this.curBucket = null;
-    this.curBucketAggr = null;
-    this.curBucketCount = 0;
   },
 
   chew: function() {
@@ -38,7 +40,7 @@ let LogAggr = {
       this._chewBucket(this.curBucket, this.curBucketAggr);
     }
 
-    let newBuckets = LogManager.getAndClearNewBuckets();
+    let newBuckets = this.logFile.getAndClearNewBuckets();
     for each (let [iBucket, [bucketName, bucket]] in Iterator(newBuckets)) {
       didSomething = true;
       let bucketAggr = {
@@ -60,4 +62,3 @@ let LogAggr = {
     return didSomething;
   }
 };
-LogAggr._init();

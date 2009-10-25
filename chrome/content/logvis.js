@@ -19,11 +19,20 @@ let LoggerHierarchyVisier = {
   _init: function LoggerHierarchyVisier_init() {
     LogManager.registerListener("onNewLogger", this.onNewLogger, this);
     LogManager.registerListener("onReset", this._onReset, this);
+
+    LogUI.registerListener("onLogFileSelected", this._onLogFileSelected, this);
   },
 
   _onReset: function LoggerHierarchyVisier__onReset() {
     this.loggerTree = [];
     this._updateVis();
+  },
+
+  selectedLogFile: null,
+  _onLogFileSelected: function LoggerHierarchyVisier__onLogFileSelected(
+                                 logFile) {
+    this.selectedLogFile = logFile;
+    this.onNewLogger(logFile, null);
   },
 
   /**
@@ -76,10 +85,13 @@ let LoggerHierarchyVisier = {
     this._vis.render();
   },
 
-  onNewLogger: function LoggerHierarchyVisier_onNewLogger(loggers,
+  onNewLogger: function LoggerHierarchyVisier_onNewLogger(logFile,
                                                           newLoggerName) {
+    if (logFile != this.selectedLogFile)
+      return;
+
     let flatLoggers = [];
-    for each (let [name, val] in Iterator(loggers)) {
+    for each (let [name, val] in Iterator(logFile.knownLoggers)) {
       flatLoggers.push([name, val]);
     }
     this.loggerTree = pv.tree(flatLoggers)
@@ -97,6 +109,21 @@ let DateBucketVis = {
   _init: function DateBucketVis__init() {
     this._updateRequired = true;
     LogManager.registerListener("onReset", this._onReset, this);
+
+    LogUI.registerListener("onLogFileSelected", this._onLogFileSelected, this);
+  },
+
+  selectedLogFile: null,
+  logAggr: null,
+  _onLogFileSelected: function LoggerHierarchyVisier__onLogFileSelected(
+                                 logFile) {
+    this.selectedLogFile = logFile;
+    this.logAggr = new LogAggr(logFile);
+    this.buckets = this.logAggr.bucketAggrs;
+    if (this._cellVis)
+      this._cellVis.data(this.buckets);
+    this._updateRequired = true;
+    this.updateVis();
   },
 
   _onReset: function DateBucketVis__onReset() {
@@ -138,7 +165,7 @@ let DateBucketVis = {
                               0.8, 1);
     };
 
-    let cell = vis.add(pv.Panel)
+    let cell = this._cellVis = vis.add(pv.Panel)
       .data(this.buckets)
       .top(function() Math.floor(this.index / xCount) * CELL_HEIGHT)
       .left(function() (this.index % xCount) * CELL_WIDTH)
@@ -151,11 +178,12 @@ let DateBucketVis = {
 
   },
   updateVis: function DateBucketVis__updateVis() {
-    // don't do anything if nothing changed.
-    if(!LogAggr.chew() && !this._updateRequired)
+    if (!this.logAggr)
       return;
 
-    this.buckets = LogAggr.bucketAggrs;
+    // don't do anything if nothing changed.
+    if (!this.logAggr.chew() && !this._updateRequired)
+      return;
 
     if ((this.buckets.length == 0) && !this._updateRequired)
       return;
@@ -172,7 +200,15 @@ let DateBucketVis = {
     this._vis.render();
   }
 };
+DateBucketVis._init();
 
 setInterval(function() {
-              DateBucketVis.updateVis();
-            }, 1000);
+  try {
+    DateBucketVis.updateVis();
+  }
+  catch (ex) {
+    dump("!!! exception updating DateBucketVis\n");
+    dump(ex + "\n");
+    dump(ex.stack + "\n\n");
+  }
+}, 1000);

@@ -2,10 +2,63 @@
  * Logging domain logic.
  */
 
+function LogFile() {
+  this.knownLoggers = {};
+  this._dateBucketsByName = {};
+  this._dateBuckets = [];
+  this._newBuckets = [];
+}
+LogFile.prototype = {
+  name: null,
+
+  /**
+   * Maps logger names to information about those loggers.
+   *
+   * Example keys would be "gloda.indexer", "gloda.ns", etc.
+   */
+  knownLoggers: null,
+
+  /**
+   * Messages are organized into DATE_BUCKET_SIZE_IN_MS msec duration buckets.
+   */
+  _dateBucketsByName: null,
+  _dateBuckets: null,
+  _firstBucketName: null,
+  _curBucket: null,
+  _curBucketName: null,
+
+  /**
+   * The list of added buckets since the last time |getAndClearNewBuckets| was
+   *  called.
+   */
+  _newBuckets: null,
+
+  getAndClearNewBuckets: function LogFile_getAndClearNewBuckets() {
+    let newBuckets = this._newBuckets;
+    this._newBuckets = [];
+
+    return newBuckets;
+  },
+
+  getBucket: function LogFile_getBucket(bucketName) {
+    if (bucketName in this._dateBucketsByName)
+      return this._dateBucketsByName[bucketName];
+    return null;
+  },
+
+  // stopgap measure until we refactor aggregation into the logfile concept.
+  // there does not seem to be much benefit to decoupling aggregation entirely
+  //  given that limit event processing and summarization is desired in all
+  //  cases.
+  resetNewState: function() {
+    this._newBuckets = [[bucket.name, bucket] for each
+                         ([, bucket] in Iterator(this._dateBuckets))];
+  }
+};
+
 /**
- * The log manager is the data store for received log messages.
- *
- *
+ * The log manager is the clearing house for log data.  Log entries are
+ *  organized into LogFile instances.
  */
 let LogManager = {
   PORT: 9363,
@@ -19,53 +72,12 @@ let LogManager = {
   },
 
   /**
-   * Maps logger names to information about those loggers.
-   *
-   * Example keys would be "gloda.indexer", "gloda.ns", etc.
-   */
-  _knownLoggers: null,
-
-  /**
-   * Messages are organized into DATE_BUCKET_SIZE_IN_MS msec duration buckets.
-   */
-  _dateBuckets: null,
-  _firstBucketName: null,
-  _curBucket: null,
-  _curBucketName: null,
-
-  /**
-   * The list of added buckets since the last time |getAndClearNewBuckets| was
-   *  called.
-   */
-  _newBuckets: null,
-
-  getAndClearNewBuckets: function LogManager_getAndClearNewBuckets() {
-    let newBuckets = this._newBuckets;
-    this._newBuckets = [];
-
-    return newBuckets;
-  },
-
-  getBucket: function LogManager_getBucket(bucketName) {
-    if (bucketName in this._dateBuckets)
-      return this._dateBuckets[bucketName];
-    return null;
-  },
-
-  /**
    * Reset all state
    */
   reset: function LogManager_reset() {
     dump("LogManager resetting...\n");
 
-    this._knownLoggers = {};
-
-    this._dateBuckets = {};
-    this._firstBucketName = null;
-    this._curBucket = null;
-    this._curBucketName = null;
-
-    this._newBuckets = [];
+    this.logFiles = [];
 
     this._notifyListeners("onReset", []);
   },
@@ -73,30 +85,49 @@ let LogManager = {
   /**
    * Handle the existence of a previously unknown named logged.
    */
-  _noteNewLogger: function LogManager__noteNewLogger(loggerName) {
-    this._knownLoggers[loggerName] = {};
-    this._notifyListeners("onNewLogger", [this._knownLoggers, loggerName]);
+  _noteNewLogger: function LogManager__noteNewLogger(logFile, loggerName) {
+    logFile.knownLoggers[loggerName] = {};
+    this._notifyListeners("onNewLogger", [logFile, loggerName]);
+  },
+
+  logFiles: null,
+
+  onNewConnection: function LogManager_onNewConnection() {
+    let logFile = new LogFile();
+    this.logFiles.push(logFile);
+    return logFile;
   },
 
   /**
    * Process received messages.
    */
-  onLogMessage: function LogManager_onLogMessage(msg) {
-    if (!(msg.loggerName in this._knownLoggers))
-      this._noteNewLogger(msg.loggerName);
+  onLogMessage: function LogManager_onLogMessage(logFile, msg) {
+    // look for the name packet, it should be the first thing we see.
+    if (logFile.name == null) {
+      if (msg.messageObjects.length &&
+          ("_isSpecialContext" in msg.messageObjects[0])) {
+        let testFile = msg.messageObjects[0].testFile[0];
+        logFile.name = testFile.substring(testFile.lastIndexOf("/") + 1);
+        this._notifyListeners("onNewLogFile", [logFile]);
+      }
+    }
+
+    if (!(msg.loggerName in logFile.knownLoggers))
+      this._noteNewLogger(logFile, msg.loggerName);
 
     // Let us assume time is monotonically increasing.
     let bucketName = msg.time - msg.time % this.DATE_BUCKET_SIZE_IN_MS;
     let bucket;
-    if (bucketName == this._curBucketName) {
-      bucket = this._curBucket;
+    if (bucketName == logFile._curBucketName) {
+      bucket = logFile._curBucket;
     }
     else {
-      bucket = this._curBucket = this._dateBuckets[bucketName] = [];
-      this._curBucketName = bucketName;
-      if (this._firstBucketName == null)
-        this._firstBucketName = bucketName;
-      this._newBuckets.push([bucketName, bucket]);
+      bucket = logFile._curBucket = logFile._dateBucketsByName[bucketName] = [];
+      logFile._dateBuckets.push(bucket);
+      logFile._curBucketName = bucketName;
+      if (logFile._firstBucketName == null)
+        logFile._firstBucketName = bucketName;
+      logFile._newBuckets.push([bucketName, bucket]);
     }
 
     bucket.push(msg);
