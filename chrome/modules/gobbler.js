@@ -130,9 +130,11 @@ Gobbler.prototype = {
 function GobblerConnection(aGobbler, aInputStream) {
   this._gobbler = aGobbler;
   this._inputStream = aInputStream;
-  this._scriptableInputStream = Cc["@mozilla.org/scriptableinputstream;1"]
-                                  .createInstance(Ci.nsIScriptableInputStream);
-  this._scriptableInputStream.init(this._inputStream);
+
+  this._uniInputStream = Cc["@mozilla.org/intl/converter-input-stream;1"]
+                           .createInstance(Ci.nsIConverterInputStream);
+  this._uniInputStream.init(this._inputStream, "UTF-8", 0,
+      Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
 
   this._inputStream.asyncWait(this, 0, 0, this._gobbler._mainThread);
 
@@ -141,10 +143,12 @@ function GobblerConnection(aGobbler, aInputStream) {
 GobblerConnection.prototype = {
   onInputStreamReady: function (aInputStream) {
     try {
-      this._data += this._scriptableInputStream.read(
-          this._scriptableInputStream.available());
+      let ostr = {};
+      this._uniInputStream.readString(this._inputStream.available(), ostr);
+      this._data += ostr.value;
     }
     catch (ex) {
+      dump("killing connection cause: " + ex + "\n" + ex.stack + "\n\n");
       this.close();
       return;
     }
@@ -161,12 +165,12 @@ GobblerConnection.prototype = {
 
   close: function () {
     try {
-      this._scriptableInputStream.close();
+      this._uniInputStream.close();
       this._inputStream.close();
     }
     catch (ex) {
     }
-    this._scriptableInputStream = null;
+    this._uniInputStream = null;
     this._inputStream = null;
   }
 };
@@ -196,4 +200,8 @@ LogGobblerConnection.prototype = {
     let message = this._gobbler._json.decode(aLine);
     this.listener.onLogMessage(this.handle, message);
   },
+  close: function LogGobblerConnection_close() {
+    this.__proto__.__proto__.close.call(this);
+    this.listener.onClosedConnection(this.handle);
+  }
 };

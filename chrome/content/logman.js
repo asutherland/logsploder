@@ -2,13 +2,23 @@
  * Logging domain logic.
  */
 
-function LogFile() {
+/**
+ * Holds all the log messages for a given source (log file, network connection,
+ *  etc.).
+ *
+ * The |LogManager| crams data into us.
+ */
+function LogFile(id) {
+  this.id = id;
   this.knownLoggers = {};
   this._dateBucketsByName = {};
   this._dateBuckets = [];
   this._newBuckets = [];
 }
 LogFile.prototype = {
+  /**
+   * Name identify the log file; probably the name of the unit test source file.
+   */
   name: null,
 
   /**
@@ -45,22 +55,17 @@ LogFile.prototype = {
       return this._dateBucketsByName[bucketName];
     return null;
   },
-
-  // stopgap measure until we refactor aggregation into the logfile concept.
-  // there does not seem to be much benefit to decoupling aggregation entirely
-  //  given that limit event processing and summarization is desired in all
-  //  cases.
-  resetNewState: function() {
-    this._newBuckets = [[bucket.name, bucket] for each
-                         ([, bucket] in Iterator(this._dateBuckets))];
-  }
 };
 
 /**
  * The log manager is the clearing house for log data.  Log entries are
  *  organized into LogFile instances.
+ *
+ * Only the LogManager is aware of the realities of
  */
 let LogManager = {
+  _nextId: 1,
+
   PORT: 9363,
 
   DATE_BUCKET_SIZE_IN_MS: 100,
@@ -93,9 +98,16 @@ let LogManager = {
   logFiles: null,
 
   onNewConnection: function LogManager_onNewConnection() {
-    let logFile = new LogFile();
+    let logFile = new LogFile(this._nextId++);
     this.logFiles.push(logFile);
+
+    this._notifyListeners("onNewLogFile", [logFile]);
     return logFile;
+  },
+
+  onClosedConnection: function LogManager_onClosedConnection(logFile) {
+    // actually maybe nothing to do about this?
+    this._notifyListeners("onLogFileDone", [logFile]);
   },
 
   /**
@@ -105,10 +117,12 @@ let LogManager = {
     // look for the name packet, it should be the first thing we see.
     if (logFile.name == null) {
       if (msg.messageObjects.length &&
-          ("_isSpecialContext" in msg.messageObjects[0])) {
+          msg.messageObjects[0] != null &&
+          (typeof(msg.messageObjects[0]) == "object") &&
+          ("_specialContext" in msg.messageObjects[0])) {
         let testFile = msg.messageObjects[0].testFile[0];
         logFile.name = testFile.substring(testFile.lastIndexOf("/") + 1);
-        this._notifyListeners("onNewLogFile", [logFile]);
+        this._notifyListeners("onLogFileNamed", [logFile]);
       }
     }
 
@@ -161,6 +175,23 @@ let LogManager = {
       this._listenersByListeningFor[listenFor] = [];
 
     this._listenersByListeningFor[listenFor].push([listener, listenerThis]);
+  },
+
+  tick: function LogManager_tick() {
+    this._notifyListeners("onTick", []);
   }
 };
 LogManager._init();
+
+// ugly support for periodically processing logs and maybe updating the UI
+setInterval(function() {
+  try {
+    LogManager.tick();
+  }
+  catch (ex) {
+    dump("!!! exception during update tick\n");
+    dump(ex + "\n");
+    dump(ex.stack + "\n\n");
+  }
+}, 1000);
+

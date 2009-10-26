@@ -15,3 +15,15 @@ body {
 dt {
   font-weight: bold;
 }
+
+.success {
+  color: green;
+}
+
+.warning {
+  color: brown;
+}
+
+.failure {
+  color: red;
+}

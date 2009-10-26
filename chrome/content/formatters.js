@@ -83,6 +83,9 @@ function stringifyThing(obj, conditionalStr) {
   if (conditionalStr == null)
     conditionalStr = "";
 
+  if (obj == null)
+    return conditionalStr + "null";
+
   if (typeof(obj) == "object") {
     if ("type" in obj)
       return stringifyTypedObj(obj, conditionalStr);

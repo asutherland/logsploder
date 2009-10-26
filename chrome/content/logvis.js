@@ -107,27 +107,19 @@ LoggerHierarchyVisier._init();
 
 let DateBucketVis = {
   _init: function DateBucketVis__init() {
-    this._updateRequired = true;
-    LogManager.registerListener("onReset", this._onReset, this);
-
     LogUI.registerListener("onLogFileSelected", this._onLogFileSelected, this);
+
+    LogUI.registerListener("onTick", this.updateVis, this);
   },
 
   selectedLogFile: null,
   logAggr: null,
   _onLogFileSelected: function LoggerHierarchyVisier__onLogFileSelected(
                                  logFile) {
-    this.selectedLogFile = logFile;
-    this.logAggr = new LogAggr(logFile);
-    this.buckets = this.logAggr.bucketAggrs;
+    this.logFile = logFile;
     if (this._cellVis)
-      this._cellVis.data(this.buckets);
-    this._updateRequired = true;
-    this.updateVis();
-  },
-
-  _onReset: function DateBucketVis__onReset() {
-    this._updateRequired = true;
+      this._cellVis.data(logFile.aggr.buckets);
+    this.lastVisedGeneration = -1;
     this.updateVis();
   },
 
@@ -166,7 +158,7 @@ let DateBucketVis = {
     };
 
     let cell = this._cellVis = vis.add(pv.Panel)
-      .data(this.buckets)
+      .data(this.logFile.aggr.buckets)
       .top(function() Math.floor(this.index / xCount) * CELL_HEIGHT)
       .left(function() (this.index % xCount) * CELL_WIDTH)
       .height(CELL_HEIGHT - 1)
@@ -178,16 +170,11 @@ let DateBucketVis = {
 
   },
   updateVis: function DateBucketVis__updateVis() {
-    if (!this.logAggr)
+    if (!this.logFile)
       return;
 
-    // don't do anything if nothing changed.
-    if (!this.logAggr.chew() && !this._updateRequired)
+    if (this.logFile.aggr.generation == this.lastVisedGeneration)
       return;
-
-    if ((this.buckets.length == 0) && !this._updateRequired)
-      return;
-    this._updateRequired = false;
 
     if (this._vis == null)
       this._makeVis();
@@ -202,13 +189,3 @@ let DateBucketVis = {
 };
 DateBucketVis._init();
 
-setInterval(function() {
-  try {
-    DateBucketVis.updateVis();
-  }
-  catch (ex) {
-    dump("!!! exception updating DateBucketVis\n");
-    dump(ex + "\n");
-    dump(ex.stack + "\n\n");
-  }
-}, 1000);
