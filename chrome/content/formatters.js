@@ -73,7 +73,7 @@ let LogFormatters = {
   // a single frame, not a whole stack
   stackFrame: {
     stringify: function format_stackFrame_stringify(obj) {
-      return obj.name + " @ " + obj.filename + ":" + obj.lineNumber;
+      return obj.name + " @ " + obj.fileName + ":" + obj.lineNumber;
     }
   },
 };
