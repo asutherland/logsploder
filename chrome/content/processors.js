@@ -22,6 +22,7 @@ let TypedContextProcessors = {
 
       let test = {
         id: msgObj._id,
+        type: "test",
         name: msgObj.name,
         parameter: msgObj.parameter,
         firstSeenInBucket: bucketAggr,
@@ -54,6 +55,8 @@ let TypedObjectProcessors = {
         bucketAggr.failures++;
       else
         bucketAggr.failures = 1;
+
+      LogProcessor.notify("failure", "new", [context, msgObj]);
     }
   }
 };

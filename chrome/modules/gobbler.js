@@ -186,7 +186,6 @@ function LogGobbler(aLogEventListener) {
 LogGobbler.prototype = {
   __proto__: Gobbler.prototype,
   connectionClass: LogGobblerConnection,
-  _json: Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON),
 };
 
 function LogGobblerConnection() {
@@ -197,7 +196,7 @@ function LogGobblerConnection() {
 LogGobblerConnection.prototype = {
   __proto__: GobblerConnection.prototype,
   processLine: function LogGobblerConnection_processLine(aLine) {
-    let message = this._gobbler._json.decode(aLine);
+    let message = JSON.parse(aLine);
     this.listener.onLogMessage(this.handle, message);
   },
   close: function LogGobblerConnection_close() {

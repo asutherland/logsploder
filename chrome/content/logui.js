@@ -31,6 +31,7 @@ let LogUI = {
    * @param bucketAggr A bucket aggregation as provided by LogAggr.
    */
   selectBucket: function LogUI_selectBucket(bucketAggr) {
+    this.selectedBucket = bucketAggr;
     this._notifyListeners("onBucketSelected",
                           [this.selectedLogFile, bucketAggr]);
     $("#data-tabs").tabs("select", "bucket-contents");
@@ -224,6 +225,9 @@ let TestList = {
                                   this.onNewTest, this);
     LogProcessor.registerListener("subtest", "new",
                                   this.onNewTest, this);
+
+    LogProcessor.registerListener("failure", "new",
+                                  this.onFailure, this);
   },
 
   selectedLogFile: null,
@@ -291,6 +295,13 @@ let TestList = {
       for each (let [, subtest] in Iterator(test.subtests)) {
         this.onNewTest(logFile, test, subtest);
       }
+    }
+  },
+
+  onFailure: function TestList_onFailure(context, failure) {
+    if (context.type == "test") {
+      let testNode = document.getElementById("test-" + context.id);
+      testNode.setAttribute("class", "clicky failure");
     }
   },
 };

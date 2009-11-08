@@ -108,19 +108,26 @@ LoggerHierarchyVisier._init();
 let DateBucketVis = {
   _init: function DateBucketVis__init() {
     LogUI.registerListener("onLogFileSelected", this._onLogFileSelected, this);
+    LogUI.registerListener("onBucketSelected", this._onBucketSelected, this);
 
     LogUI.registerListener("onTick", this.updateVis, this);
   },
 
   selectedLogFile: null,
   logAggr: null,
-  _onLogFileSelected: function LoggerHierarchyVisier__onLogFileSelected(
+  _onLogFileSelected: function DateBucketVis__onLogFileSelected(
                                  logFile) {
     this.logFile = logFile;
     if (this._cellVis)
       this._cellVis.data(logFile.aggr.buckets);
     this.lastVisedGeneration = -1;
     this.updateVis();
+  },
+
+  _onBucketSelected: function DateBucketVis__onBucketSelected(
+                                logFile, bucketAggr) {
+    if (this._vis)
+      this._vis.render();
   },
 
   WIDTH: 615,
@@ -161,6 +168,8 @@ let DateBucketVis = {
       .data(this.logFile.aggr.buckets)
       .top(function() Math.floor(this.index / xCount) * CELL_HEIGHT)
       .left(function() (this.index % xCount) * CELL_WIDTH)
+      .lineWidth(function(d) (d == LogUI.selectedBucket) ? 1 : 0)
+      .strokeStyle("yellow")
       .height(CELL_HEIGHT - 1)
       .width(CELL_WIDTH - 1)
       .event("click", function(d) LogUI.selectBucket(d));
@@ -185,6 +194,7 @@ let DateBucketVis = {
     }
 
     this._vis.render();
+    this.lastVisedGeneration = this.logFile.aggr.generation;
   }
 };
 DateBucketVis._init();
