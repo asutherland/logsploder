@@ -35,7 +35,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-EXPORTED_SYMBOLS = ["LogGobbler"];
+EXPORTED_SYMBOLS = ["NetLogGobbler", "DiskLogGobbler"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -45,13 +45,13 @@ const Cu = Components.utils;
 /**
  * Primitive incoming server base class.
  */
-function Gobbler() {
+function NetGobbler() {
   this._mainThread = Cc["@mozilla.org/thread-manager;1"]
                        .getService(Ci.nsIThreadManager).mainThread;
   this.connections = [];
 }
-Gobbler.prototype = {
-  start: function Gobbler_start(aPort) {
+NetGobbler.prototype = {
+  start: function NetGobbler_start(aPort) {
     this._socket = Cc["@mozilla.org/network/server-socket;1"]
                      .createInstance(Ci.nsIServerSocket);
     this._socket.init(aPort, /* local only */ true, /* default backlog */ -1);
@@ -64,7 +64,7 @@ Gobbler.prototype = {
     observerService.addObserver(this, "quit-application", false);
   },
 
-  stop: function Gobbler_stop() {
+  stop: function NetGobbler_stop() {
     this.destroyPointerFile();
     if (this._socket) {
       this._socket.close();
@@ -76,14 +76,14 @@ Gobbler.prototype = {
     observerService.removeObserver(this, "quit-application");
   },
 
-  observe: function Gobbler_observe(aSubject, aTopic, aData) {
+  observe: function NetGobbler_observe(aSubject, aTopic, aData) {
     // shutdown
     if (aTopic == "quit-application") {
       this.stop();
     }
   },
 
-  _getPointerFile: function Gobbler__getPointerFile() {
+  _getPointerFile: function NetGobbler__getPointerFile() {
     let file = Cc["@mozilla.org/file/directory_service;1"]
       .getService(Ci.nsIProperties)
       .get("TmpD", Ci.nsIFile);
@@ -94,7 +94,7 @@ Gobbler.prototype = {
   /**
    * Create the file that tells testing code about us.
    */
-  createPointerFile: function Gobbler_createPointerFile(aPort) {
+  createPointerFile: function NetGobbler_createPointerFile(aPort) {
     let file = this._getPointerFile();
 
     let data = "localhost:" + aPort;
@@ -109,21 +109,25 @@ Gobbler.prototype = {
   /**
    * Destroy the file that tells testing code about us.
    */
-  destroyPointerFile: function Gobbler_destroyPointerFile() {
+  destroyPointerFile: function NetGobbler_destroyPointerFile() {
     let pointerFile = this._getPointerFile();
     pointerFile.remove(false);
   },
 
   // ===== nsIServerSocketListener =====
-  onSocketAccepted: function Gobbler_onSocketAccepted(aServer, aTransport) {
+  onSocketAccepted: function NetGobbler_onSocketAccepted(aServer, aTransport) {
     dump("got connection!\n");
     let inputStream = aTransport.openInputStream(0, 0, 0)
                                 .QueryInterface(Ci.nsIAsyncInputStream);
     let conn = new this.connectionClass(this, inputStream);
     this.connections.push(conn);
   },
-  onStopListening: function Gobbler_onStopListening(aServer, aStatus) {
+  onStopListening: function NetGobbler_onStopListening(aServer, aStatus) {
     dump("onStopListening\n");
+  },
+
+  onDeadConnection: function NetGobbler_onDeadConnection(aConn) {
+    this.connections.splice(this.connections.indexOf(aConn), 1);
   }
 };
 
@@ -150,6 +154,7 @@ GobblerConnection.prototype = {
     catch (ex) {
       dump("killing connection cause: " + ex + "\n" + ex.stack + "\n\n");
       this.close();
+      this._gobbler.onDeadConnection(this);
       return;
     }
 
@@ -179,12 +184,12 @@ GobblerConnection.prototype = {
  * Specialized log processing server; which is to say, we know how to create
  *
  */
-function LogGobbler(aLogEventListener) {
-  Gobbler.call(this);
+function NetLogGobbler(aLogEventListener) {
+  NetGobbler.call(this);
   this.logEventListener = aLogEventListener;
 }
-LogGobbler.prototype = {
-  __proto__: Gobbler.prototype,
+NetLogGobbler.prototype = {
+  __proto__: NetGobbler.prototype,
   connectionClass: LogGobblerConnection,
 };
 
@@ -203,4 +208,56 @@ LogGobblerConnection.prototype = {
     this.__proto__.__proto__.close.call(this);
     this.listener.onClosedConnection(this.handle);
   }
+};
+
+function DiskLogGobbler(aLogEventListener) {
+  this._mainThread = Cc["@mozilla.org/thread-manager;1"]
+                       .getService(Ci.nsIThreadManager).mainThread;
+  this.logEventListener = aLogEventListener;
+  this.connections = [];
+}
+DiskLogGobbler.prototype = {
+  connectionClass: LogGobblerConnection,
+  loadFilesMatching: function DiskLogGobbler_loadFilesMatching(aDir, aPrefix) {
+    if (!aDir)
+      aDir = Cc["@mozilla.org/file/directory_service;1"]
+               .getService(Ci.nsIProperties)
+                 .get("TmpD", Ci.nsIFile);
+    if (!aPrefix)
+      aPrefix = "logsploder-";
+
+    let entries = aDir.directoryEntries;
+    while (entries.hasMoreElements()) {
+      let entry = entries.getNext().QueryInterface(Ci.nsIFile);
+      if (entry.isFile() &&
+          (!aPrefix || entry.leafName.indexOf(aPrefix) == 0)) {
+        this.loadFile(entry);
+      }
+    }
+
+
+  },
+
+  loadFile: function DiskLogGobbler_loadFile(aFile) {
+    dump("Loading: " + aFile.leafName + "\n");
+
+    dump("  getting rawInputStream\n");
+    let rawInputStream = Cc["@mozilla.org/network/file-input-stream;1"]
+                           .createInstance(Ci.nsIFileInputStream);
+    rawInputStream.init(aFile, -1, 0, 0);
+    let sts = Cc["@mozilla.org/network/stream-transport-service;1"]
+                .getService(Ci.nsIStreamTransportService);
+    dump("  creating async transport\n");
+    let transport = sts.createInputTransport(rawInputStream, -1, -1, true);
+    dump("  creating async inputStream\n");
+    let inputStream = transport.openInputStream(0, 0, 0)
+                               .QueryInterface(Ci.nsIAsyncInputStream);
+    dump("  creating gobbler connection\n");
+    let connection = new this.connectionClass(this, inputStream);
+    this.connections.push(connection);
+  },
+
+  onDeadConnection: function NetGobbler_onDeadConnection(aConn) {
+    this.connections.splice(this.connections.indexOf(aConn), 1);
+  },
 };

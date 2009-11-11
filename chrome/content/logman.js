@@ -72,7 +72,7 @@ let LogManager = {
 
   _init: function LogManager__init() {
     this.reset();
-    this.gobbler = new LogGobbler(this);
+    this.gobbler = new NetLogGobbler(this);
     this.gobbler.start(this.PORT);
   },
 
@@ -179,6 +179,14 @@ let LogManager = {
 
   tick: function LogManager_tick() {
     this._notifyListeners("onTick", []);
+  },
+
+  _diskGobbler: null,
+  diskGobble: function() {
+    if (!this._diskGobbler)
+      this._diskGobbler = new DiskLogGobbler(this);
+
+    this._diskGobbler.loadFilesMatching();
   }
 };
 LogManager._init();
