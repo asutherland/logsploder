@@ -68,7 +68,7 @@ let LogManager = {
 
   PORT: 9363,
 
-  DATE_BUCKET_SIZE_IN_MS: 100,
+  DATE_BUCKET_SIZE_IN_MS: 1000,
 
   _init: function LogManager__init() {
     this.reset();
