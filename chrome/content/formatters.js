@@ -70,10 +70,29 @@ let LogFormatters = {
     },
   },
 
+  error: {
+    stringify: function format_stackFrame_stringify(obj) {
+      return obj.message + ": " + obj.name +
+        " @ " + obj.fileName + ":" + obj.lineNumber;
+    }
+  },
+
   // a single frame, not a whole stack
   stackFrame: {
     stringify: function format_stackFrame_stringify(obj) {
       return obj.name + " @ " + obj.fileName + ":" + obj.lineNumber;
+    }
+  },
+
+  domNode: {
+    stringify: function format_domNode_stringify(obj) {
+      return "DomNode: " + obj.name + ": " + obj.value;
+    }
+  },
+
+  XPCOM: {
+    stringify: function format_domNode_stringify(obj) {
+      return obj.name;
     }
   },
 };
