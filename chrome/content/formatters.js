@@ -23,6 +23,21 @@ let FormatHelp = {
   }
 };
 
+/**
+ * Take a potentialy stupidly long URL and inject ellipsis as reasonable.
+ */
+function elideUrl(url) {
+  if (url.length < 40)
+    return url;
+  var protoIdx = url.indexOf("://");
+  var lslash = url.lastIndexOf("/");
+  if (lslash != -1)
+    lslash = url.lastIndexOf("/", lslash - 1);
+  if (lslash == -1)
+    return url;
+  return url.substring(0, protoIdx + 3) + "..." + url.substring(lslash);
+}
+
 let LogFormatters = {
   test: { // and subtest
     stringify: function format_test_stringify(obj) {
@@ -87,6 +102,15 @@ let LogFormatters = {
   domNode: {
     stringify: function format_domNode_stringify(obj) {
       return "DomNode: " + obj.name + ": " + obj.value;
+    }
+  },
+
+  domWindow: {
+    stringify: function format_domNode_stringify(obj) {
+      if (obj.id == "n/a" && obj.title == "no document") {
+        return "DomWindow:" + elideUrl(obj.location);
+      }
+      return "DomWindow: " + obj.id + ": " + obj.title;
     }
   },
 

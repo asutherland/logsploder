@@ -52,7 +52,7 @@
                   let oldVal = knownContext[key];
                   if (oldVal != newVal) {
                     knownContext[key] = newVal;
-                    if (key == "lastStateChange" &&
+                    if (key == "_lastStateChange" &&
                         newContext.state != "finished") {
                       let stateChanges = knownContext.stateChanges;
                       if (stateChanges === undefined)
